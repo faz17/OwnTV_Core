@@ -1879,6 +1879,8 @@
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/${xc.channelId}/
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/$channelId/streams/
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/by-uuids/
+1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/m3u/accounts/
+1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/m3u/accounts/?page=$page
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/proxy/ts/change_stream/${sources.channelUuid}
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/proxy/ts/status/${channelUuid}
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	$configuredOrigin/proxy/ts/stream/123e4567-e89b-42d3-a456-426614174000
@@ -1897,8 +1899,10 @@
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid stream list response
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	m3u_account
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	name
+1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	next
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel on the configured server
+1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	results
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Selected stream is not assigned to this channel
 2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	stream_id
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	stream_stats

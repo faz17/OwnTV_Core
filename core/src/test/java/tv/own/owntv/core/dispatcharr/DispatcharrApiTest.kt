@@ -30,6 +30,8 @@ class DispatcharrApiTest {
                     """{"id":7,"uuid":"$uuid","name":"Example Channel"}"""
                 "/api/channels/channels/by-uuids/" ->
                     """[{"id":7,"uuid":"$uuid","name":"Example Channel"}]"""
+                "/api/m3u/accounts/" ->
+                    """[{"id":5,"name":"Nexon"},{"id":8,"name":"Italy Sports"}]"""
                 "/api/channels/channels/7/streams/" ->
                     """[{"id":31,"name":"Provider A HD","m3u_account":5},{"id":32,"name":"Provider B FHD","m3u_account":8}]"""
                 "/proxy/ts/status/$uuid" ->
@@ -67,7 +69,8 @@ class DispatcharrApiTest {
         assertEquals(31, result.activeStreamId)
         assertEquals(listOf(31, 32), result.streams.map { it.id })
         assertEquals(listOf(5, 8), result.streams.map { it.providerAccountId })
-        assertEquals(3, calls.size)
+        assertEquals(listOf("Nexon", "Italy Sports"), result.streams.map { it.providerAccountName })
+        assertEquals(4, calls.size)
     }
 
     @Test fun xtreamLiveUrlResolvesNumericIdToUuid() = runBlocking {

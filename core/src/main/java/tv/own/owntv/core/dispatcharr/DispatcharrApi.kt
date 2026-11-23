@@ -38,6 +38,8 @@ class DispatcharrApi(
         val name: String,
         val providerAccountId: Int?,
         val streamStats: String?,
+        /** User-facing Dispatcharr M3U account name, if the account can be resolved. */
+        val providerAccountName: String? = null,
     )
 
     data class ChannelSources(
@@ -95,13 +97,52 @@ class DispatcharrApi(
             )
         }
 
+        // Account IDs from the stream serializer refer to M3U accounts. Resolve their display
+        // names once per sheet load. A failed metadata lookup must never hide playable sources.
+        val names = if (streams.any { it.providerAccountId != null }) {
+            runCatching { loadAccountNames() }.getOrDefault(emptyMap())
+        } else emptyMap()
+        val namedStreams = streams.map { stream ->
+            stream.copy(providerAccountName = stream.providerAccountId?.let(names::get))
+        }
+
         // Dispatcharr reports the active upstream only when the channel is playing.
         val activeId = runCatching {
             (requestJson("/proxy/ts/status/${channelUuid}", stage = ApiStage.STATUS) as? JSONObject)
                 ?.optInt("stream_id")?.takeIf { it > 0 }
         }.getOrNull()
 
-        ChannelSources(channelUuid, channelId, activeId, streams)
+        ChannelSources(channelUuid, channelId, activeId, namedStreams)
+    }
+
+    /**
+     * Read the Dispatcharr playlist names, not their server URLs or XC credentials.
+     * Supports both unpaginated and DRF paginated account lists, using same-origin
+     * generated page paths rather than following API-supplied redirect/next URLs.
+     */
+    private fun loadAccountNames(): Map<Int, String> {
+        val names = mutableMapOf<Int, String>()
+        for (page in 1..10) {
+            val payload = requestJson(
+                if (page == 1) "/api/m3u/accounts/" else "/api/m3u/accounts/?page=$page",
+                stage = ApiStage.STREAMS,
+            )
+            val rows = when (payload) {
+                is JSONArray -> payload
+                is JSONObject -> payload.optJSONArray("results") ?: break
+                else -> break
+            }
+            for (index in 0 until rows.length()) {
+                val account = rows.optJSONObject(index) ?: continue
+                val id = account.optInt("id")
+                val name = account.optString("name").trim()
+                if (id > 0 && name.isNotBlank()) names[id] = name
+            }
+            if (payload !is JSONObject ||
+                payload.isNull("next") ||
+                payload.optString("next").isBlank()) break
+        }
+        return names
     }
 
     /** Switch the upstream inside Dispatcharr without retuning the OwnTV player. */

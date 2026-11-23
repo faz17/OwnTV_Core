@@ -77,7 +77,7 @@ class DispatcharrApi(
             if (id <= 0) return@mapNotNull null
             AssignedStream(
                 id = id,
-                name = stream.optString("name").ifBlank { "Stream $id" },
+                name = stream.optString("name").ifBlank { id.toString() },
                 providerAccountId = stream.optInt("m3u_account").takeIf { it > 0 },
                 streamStats = stream.optJSONObject("stream_stats")?.toString(),
             )

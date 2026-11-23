@@ -22,6 +22,17 @@ class DispatcharrApi(
     private val configuredOrigin: String,
     private val apiKey: String,
 ) {
+    enum class ApiStage { CHANNEL, STREAMS, STATUS, SWITCH, AUTH }
+
+    /** Never put the response body or streaming credentials in diagnostics. */
+    class ApiFailure(val stage: ApiStage, val statusCode: Int?, cause: Throwable? = null) : IOException(cause)
+
+    /** Verify the configured API key and reachability without needing a playing channel. */
+    suspend fun verifyConnection(): Unit = withContext(Dispatchers.IO) {
+        val response = requestJson("/api/accounts/users/me/", stage = ApiStage.AUTH)
+        if (response !is JSONObject) throw ApiFailure(ApiStage.AUTH, null)
+    }
+
     data class AssignedStream(
         val id: Int,
         val name: String,
@@ -45,7 +56,7 @@ class DispatcharrApi(
         val channelId: Int
         val channelUuid: String
         if (xc != null) {
-            val row = requestJson("/api/channels/channels/${xc.channelId}/") as? JSONObject
+            val row = requestJson("/api/channels/channels/${xc.channelId}/", stage = ApiStage.CHANNEL) as? JSONObject
                 ?: throw IOException("Invalid channel lookup response")
             channelId = row.optInt("id").takeIf { it == xc.channelId }
                 ?: throw IOException("Dispatcharr channel ID did not match the playing channel")
@@ -59,6 +70,7 @@ class DispatcharrApi(
             val rows = requestJson(
                 "/api/channels/channels/by-uuids/",
                 JSONObject().put("uuids", JSONArray().put(ref.channelUuid)),
+                stage = ApiStage.CHANNEL,
             ) as? JSONArray ?: throw IOException("Invalid channel lookup response")
             val exact = (0 until rows.length())
                 .mapNotNull(rows::optJSONObject)
@@ -69,7 +81,7 @@ class DispatcharrApi(
             channelUuid = ref.channelUuid
         }
 
-        val streamsJson = requestJson("/api/channels/channels/$channelId/streams/") as? JSONArray
+        val streamsJson = requestJson("/api/channels/channels/$channelId/streams/", stage = ApiStage.STREAMS) as? JSONArray
             ?: throw IOException("Invalid stream list response")
         val streams = (0 until streamsJson.length()).mapNotNull { index ->
             val stream = streamsJson.optJSONObject(index) ?: return@mapNotNull null
@@ -85,7 +97,7 @@ class DispatcharrApi(
 
         // Dispatcharr reports the active upstream only when the channel is playing.
         val activeId = runCatching {
-            (requestJson("/proxy/ts/status/${channelUuid}") as? JSONObject)
+            (requestJson("/proxy/ts/status/${channelUuid}", stage = ApiStage.STATUS) as? JSONObject)
                 ?.optInt("stream_id")?.takeIf { it > 0 }
         }.getOrNull()
 
@@ -106,6 +118,7 @@ class DispatcharrApi(
         requestJson(
             "/proxy/ts/change_stream/${sources.channelUuid}",
             JSONObject().put("stream_id", selectedStreamId),
+            stage = ApiStage.SWITCH,
         )
         Unit
     }
@@ -118,7 +131,7 @@ class DispatcharrApi(
         ) { "Not a Dispatcharr channel on the configured server" }
     }
 
-    private fun requestJson(path: String, payload: JSONObject? = null): Any {
+    private fun requestJson(path: String, payload: JSONObject? = null, stage: ApiStage): Any {
         // Only use the normalized origin that the strict URL matcher approved.
         val origin = DispatcharrChannelUrls.parseForServer(
             "$configuredOrigin/proxy/ts/stream/123e4567-e89b-42d3-a456-426614174000",
@@ -129,18 +142,24 @@ class DispatcharrApi(
             .post(payload.toString().toRequestBody("application/json".toMediaType())).build()
         // OkHttp ordinarily follows cross-origin redirects. A privileged X-API-Key
         // must never be forwarded to another host.
-        http.newBuilder().followRedirects(false).followSslRedirects(false).build()
+        try {
+            http.newBuilder().followRedirects(false).followSslRedirects(false).build()
             .newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 // Do not expose the raw body: it may contain upstream URLs/credentials.
-                throw IOException("Dispatcharr request failed (HTTP ${response.code})")
+                throw ApiFailure(stage, response.code)
             }
             val body = response.body?.string().orEmpty()
             return when (body.trimStart().firstOrNull()) {
                 '{' -> JSONObject(body)
                 '[' -> JSONArray(body)
-                else -> throw IOException("Unexpected Dispatcharr response")
+                else -> throw ApiFailure(stage, null)
             }
+        }
+        } catch (e: ApiFailure) {
+            throw e
+        } catch (e: IOException) {
+            throw ApiFailure(stage, null, e)
         }
     }
 }

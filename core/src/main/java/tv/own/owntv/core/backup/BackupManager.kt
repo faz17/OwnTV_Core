@@ -51,6 +51,22 @@ class BackupManager(
     /** Writes a restored profile picture into `filesDir/avatars`; the one thing that puts files there. */
     private val avatarStore: tv.own.owntv.core.profile.ProfileAvatarStore,
 ) {
+    /**
+     * Optional application-owned secret. Core encrypts it using the ordinary backup
+     * passphrase, without knowing any app-specific credential or Keystore format.
+     * A backup without a passphrase never includes the secret.
+     */
+    interface SupplementarySecret {
+        fun export(): String?
+        fun restore(value: String)
+    }
+
+    @Volatile private var supplementarySecret: SupplementarySecret? = null
+
+    fun registerSupplementarySecret(handler: SupplementarySecret) {
+        supplementarySecret = handler
+    }
+
     /** What a backup can contain; the user multi-selects these for export and restore. Profiles are
      *  NOT a section: every backup is inherently profile-based — the export flow's first step picks
      *  which profiles to include (PIN-verified for locked non-active ones), and the ticked profiles'
@@ -184,6 +200,7 @@ class BackupManager(
                     if (seal != null && tmdbKey.isNotEmpty()) s.put("tmdb_key_enc", seal(tmdbKey))
                     val openSubtitlesKey = settings.currentOpenSubtitlesApiKey()
                     if (seal != null && openSubtitlesKey.isNotEmpty()) s.put("opensub_api_key_enc", seal(openSubtitlesKey))
+                    if (seal != null) supplementarySecret?.export()?.let { s.put("supplementary_secret_enc", seal(it)) }
                     put("settings", s)
                     // Which device wrote this, so a restore can hold back the hardware settings when
                     // it lands somewhere else (see DeviceIdentity).
@@ -1268,6 +1285,10 @@ class BackupManager(
             if (s.has("opensub_api_key_enc")) {
                 unseal(s.opt("opensub_api_key_enc"))?.let { settings.setOpenSubtitlesApiKey(it) }
             }
+            // Do not import a device-specific administrator credential during profile sync.
+            if (intoProfile == null && s.has("supplementary_secret_enc")) {
+                unseal(s.opt("supplementary_secret_enc"))?.let { supplementarySecret?.restore(it) }
+            }
                     count += s.length()
                 }
                 // After importSettings, because that is what wrote the file's (device-local) bg path.
@@ -1618,6 +1639,7 @@ class BackupManager(
         root.optJSONObject("settings")?.opt("proxy_pass_enc")?.let { if (BackupCrypto.isEncrypted(it)) return it as JSONObject }
         root.optJSONObject("settings")?.opt("tmdb_key_enc")?.let { if (BackupCrypto.isEncrypted(it)) return it as JSONObject }
         root.optJSONObject("settings")?.opt("opensub_api_key_enc")?.let { if (BackupCrypto.isEncrypted(it)) return it as JSONObject }
+        root.optJSONObject("settings")?.opt("supplementary_secret_enc")?.let { if (BackupCrypto.isEncrypted(it)) return it as JSONObject }
         // A per-profile OpenSubtitles login is encrypted too — probe it so an all-OpenSubtitles backup validates.
         root.optJSONArray("openSubtitles")?.let { arr ->
             for (i in 0 until arr.length()) {

@@ -1,0 +1,97 @@
+package tv.own.owntv.core.dispatcharr
+
+import kotlinx.coroutines.runBlocking
+import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class DispatcharrApiTest {
+    private val uuid = "123e4567-e89b-42d3-a456-426614174000"
+    private val playingUrl = "https://tv.example/proxy/ts/stream/$uuid"
+
+    private fun client(
+        calls: MutableList<Pair<String, String>>,
+        active: Boolean = true,
+    ): DispatcharrApi {
+        val interceptor = Interceptor { chain ->
+            val req = chain.request()
+            calls += req.method to req.url.encodedPath
+            assertEquals("secret-test-key", req.header("X-API-Key"))
+            val result = when (req.url.encodedPath) {
+                "/api/channels/channels/by-uuids/" ->
+                    """[{"id":7,"uuid":"$uuid","name":"Example Channel"}]"""
+                "/api/channels/channels/7/streams/" ->
+                    """[{"id":31,"name":"Provider A HD","m3u_account":5},{"id":32,"name":"Provider B FHD","m3u_account":8}]"""
+                "/proxy/ts/status/$uuid" ->
+                    if (active) """{"stream_id":31}""" else """{"state":"stopped"}"""
+                "/proxy/ts/change_stream/$uuid" -> {
+                    assertEquals("POST", req.method)
+                    assertEquals("""{"stream_id":32}""", req.body?.let { body ->
+                        val buffer = okio.Buffer()
+                        body.writeTo(buffer)
+                        buffer.readUtf8()
+                    })
+                    """{"message":"Stream changed successfully","stream_id":32}"""
+                }
+                else -> error("Unexpected request: ${req.url}")
+            }
+            Response.Builder()
+                .request(req)
+                .protocol(Protocol.HTTP_1_1)
+                .code(200)
+                .message("OK")
+                .body(result.toResponseBody("application/json".toMediaType()))
+                .build()
+        }
+        return DispatcharrApi(
+            OkHttpClient.Builder().addInterceptor(interceptor).build(),
+            "https://tv.example",
+            "secret-test-key",
+        )
+    }
+
+    @Test fun listsAssignedStreamsAndActiveStream() = runBlocking {
+        val calls = mutableListOf<Pair<String, String>>()
+        val result = client(calls).sourcesFor(playingUrl)
+        assertEquals(7, result.channelId)
+        assertEquals(31, result.activeStreamId)
+        assertEquals(listOf(31, 32), result.streams.map { it.id })
+        assertEquals(listOf(5, 8), result.streams.map { it.providerAccountId })
+        assertEquals(3, calls.size)
+    }
+
+    @Test fun switchesChosenAssignedStreamNotPlayerUrl() = runBlocking {
+        val calls = mutableListOf<Pair<String, String>>()
+        client(calls).switch(playingUrl, 32)
+        assertTrue(calls.contains("POST" to "/proxy/ts/change_stream/$uuid"))
+    }
+
+    @Test fun refusesUnknownStreamAndInactiveChannels() = runBlocking {
+        val calls = mutableListOf<Pair<String, String>>()
+        val api = client(calls, active = false)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { api.switch(playingUrl, 99) }
+        }
+        assertThrows(java.io.IOException::class.java) {
+            runBlocking { api.switch(playingUrl, 32) }
+        }
+        assertFalse(calls.any { it.second.contains("change_stream") })
+    }
+
+    @Test fun refusesDifferentHostBeforeAnyHttpRequest() {
+        val calls = mutableListOf<Pair<String, String>>()
+        val api = client(calls)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { api.sourcesFor("https://untrusted.example/proxy/ts/stream/$uuid") }
+        }
+        assertTrue(calls.isEmpty())
+    }
+}

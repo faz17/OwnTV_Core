@@ -1889,8 +1889,7 @@
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Channel not found in Dispatcharr
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Dispatcharr API key not configured
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Dispatcharr channel ID did not match the playing channel
-1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Dispatcharr request failed (HTTP ${response.code})
-3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	id
+4	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	id
 2	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid channel lookup response
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid channel UUID in Dispatcharr response
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid Dispatcharr channel id
@@ -1898,8 +1897,8 @@
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid stream id
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid stream list response
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	m3u_account
-1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	name
-1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	next
+2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	name
+2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	next
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel on the configured server
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	results

@@ -1875,6 +1875,7 @@
 1	technical	core/src/main/java/tv/own/owntv/core/di/DataModule.kt	sports
 1	json	core/src/main/java/tv/own/owntv/core/di/DataModule.kt	subtitles
 2	technical	core/src/main/java/tv/own/owntv/core/di/DataModule.kt	User-Agent
+1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/accounts/users/me/
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/${xc.channelId}/
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/$channelId/streams/
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/by-uuids/

@@ -26,6 +26,8 @@ class DispatcharrApiTest {
             calls += req.method to req.url.encodedPath
             assertEquals("secret-test-key", req.header("X-API-Key"))
             val result = when (req.url.encodedPath) {
+                "/api/channels/channels/7/" ->
+                    """{"id":7,"uuid":"$uuid","name":"Example Channel"}"""
                 "/api/channels/channels/by-uuids/" ->
                     """[{"id":7,"uuid":"$uuid","name":"Example Channel"}]"""
                 "/api/channels/channels/7/streams/" ->
@@ -66,6 +68,24 @@ class DispatcharrApiTest {
         assertEquals(listOf(31, 32), result.streams.map { it.id })
         assertEquals(listOf(5, 8), result.streams.map { it.providerAccountId })
         assertEquals(3, calls.size)
+    }
+
+    @Test fun xtreamLiveUrlResolvesNumericIdToUuid() = runBlocking {
+        val calls = mutableListOf<Pair<String, String>>()
+        val xtreamUrl = "https://tv.example/live/username/password/7.ts"
+        val found = client(calls).sourcesFor(xtreamUrl)
+        assertEquals(7, found.channelId)
+        assertEquals(uuid, found.channelUuid)
+        assertEquals(31, found.activeStreamId)
+        assertEquals("GET" to "/api/channels/channels/7/", calls.first())
+        assertFalse(calls.any { it.second.contains("by-uuids") })
+    }
+
+    @Test fun xtreamSwitchUsesUuidNotCredentialsOrNumericId() = runBlocking {
+        val calls = mutableListOf<Pair<String, String>>()
+        client(calls).switch("https://tv.example/live/user/pass/7.ts", 32)
+        assertTrue(calls.contains("POST" to "/proxy/ts/change_stream/$uuid"))
+        assertFalse(calls.any { it.second.contains("/live/user/pass/") })
     }
 
     @Test fun switchesChosenAssignedStreamNotPlayerUrl() = runBlocking {

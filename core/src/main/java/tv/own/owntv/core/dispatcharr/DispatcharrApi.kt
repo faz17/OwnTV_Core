@@ -38,17 +38,36 @@ class DispatcharrApi(
 
     /** Fail closed if the playing URL is not from the configured Dispatcharr. */
     suspend fun sourcesFor(playingUrl: String): ChannelSources = withContext(Dispatchers.IO) {
-        val ref = requireKnownChannel(playingUrl)
-        val rows = requestJson(
-            "/api/channels/channels/by-uuids/",
-            JSONObject().put("uuids", JSONArray().put(ref.channelUuid)),
-        ) as? JSONArray ?: throw IOException("Invalid channel lookup response")
-        val exact = (0 until rows.length())
-            .mapNotNull(rows::optJSONObject)
-            .firstOrNull { it.optString("uuid").equals(ref.channelUuid, ignoreCase = true) }
-            ?: throw IOException("Channel not found in Dispatcharr")
-        val channelId = exact.optInt("id").takeIf { it > 0 }
-            ?: throw IOException("Invalid Dispatcharr channel id")
+        requireConfiguredChannel(playingUrl)
+        // Xtream /live/<user>/<password>/<numeric-channel-id>.ts maps to the
+        // Dispatcharr channel PK. Resolve its UUID before calling proxy APIs.
+        val xc = DispatcharrXtreamChannelUrls.parseForServer(playingUrl, configuredOrigin)
+        val channelId: Int
+        val channelUuid: String
+        if (xc != null) {
+            val row = requestJson("/api/channels/channels/${xc.channelId}/") as? JSONObject
+                ?: throw IOException("Invalid channel lookup response")
+            channelId = row.optInt("id").takeIf { it == xc.channelId }
+                ?: throw IOException("Dispatcharr channel ID did not match the playing channel")
+            channelUuid = row.optString("uuid").takeIf {
+                DispatcharrChannelUrls.isValidUuid(it)
+            }?.lowercase(java.util.Locale.ROOT)
+                ?: throw IOException("Invalid channel UUID in Dispatcharr response")
+        } else {
+            val ref = DispatcharrChannelUrls.parseForServer(playingUrl, configuredOrigin)
+                ?: throw IllegalArgumentException("Not a Dispatcharr channel")
+            val rows = requestJson(
+                "/api/channels/channels/by-uuids/",
+                JSONObject().put("uuids", JSONArray().put(ref.channelUuid)),
+            ) as? JSONArray ?: throw IOException("Invalid channel lookup response")
+            val exact = (0 until rows.length())
+                .mapNotNull(rows::optJSONObject)
+                .firstOrNull { it.optString("uuid").equals(ref.channelUuid, ignoreCase = true) }
+                ?: throw IOException("Channel not found in Dispatcharr")
+            channelId = exact.optInt("id").takeIf { it > 0 }
+                ?: throw IOException("Invalid Dispatcharr channel id")
+            channelUuid = ref.channelUuid
+        }
 
         val streamsJson = requestJson("/api/channels/channels/$channelId/streams/") as? JSONArray
             ?: throw IOException("Invalid stream list response")
@@ -66,11 +85,11 @@ class DispatcharrApi(
 
         // Dispatcharr reports the active upstream only when the channel is playing.
         val activeId = runCatching {
-            (requestJson("/proxy/ts/status/${ref.channelUuid}") as? JSONObject)
+            (requestJson("/proxy/ts/status/${channelUuid}") as? JSONObject)
                 ?.optInt("stream_id")?.takeIf { it > 0 }
         }.getOrNull()
 
-        ChannelSources(ref.channelUuid, channelId, activeId, streams)
+        ChannelSources(channelUuid, channelId, activeId, streams)
     }
 
     /** Switch the upstream inside Dispatcharr without retuning the OwnTV player. */
@@ -91,10 +110,12 @@ class DispatcharrApi(
         Unit
     }
 
-    private fun requireKnownChannel(playingUrl: String): DispatcharrChannelRef {
+    private fun requireConfiguredChannel(playingUrl: String) {
         check(apiKey.isNotBlank()) { "Dispatcharr API key not configured" }
-        return DispatcharrChannelUrls.parseForServer(playingUrl, configuredOrigin)
-            ?: throw IllegalArgumentException("Not a Dispatcharr channel on the configured server")
+        require(
+            DispatcharrChannelUrls.parseForServer(playingUrl, configuredOrigin) != null ||
+                DispatcharrXtreamChannelUrls.parseForServer(playingUrl, configuredOrigin) != null
+        ) { "Not a Dispatcharr channel on the configured server" }
     }
 
     private fun requestJson(path: String, payload: JSONObject? = null): Any {
@@ -106,7 +127,10 @@ class DispatcharrApi(
         val builder = Request.Builder().url(origin + path).header("X-API-Key", apiKey)
         val request = if (payload == null) builder.get().build() else builder
             .post(payload.toString().toRequestBody("application/json".toMediaType())).build()
-        http.newCall(request).execute().use { response ->
+        // OkHttp ordinarily follows cross-origin redirects. A privileged X-API-Key
+        // must never be forwarded to another host.
+        http.newBuilder().followRedirects(false).followSslRedirects(false).build()
+            .newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 // Do not expose the raw body: it may contain upstream URLs/credentials.
                 throw IOException("Dispatcharr request failed (HTTP ${response.code})")

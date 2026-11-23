@@ -21,6 +21,7 @@ object DispatcharrChannelUrls {
     private val UUID = Regex(
         "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}",
     )
+    fun isValidUuid(value: String): Boolean = UUID.matches(value)
     private val PATH = Regex("^/proxy/ts/stream/([0-9a-fA-F-]{36})/?$", RegexOption.IGNORE_CASE)
 
     fun parse(rawUrl: String): DispatcharrChannelRef? {
@@ -56,5 +57,37 @@ object DispatcharrChannelUrls {
         val hostName = if (host.contains(':')) "[$host]" else host
         val origin = "$scheme://$hostName" + if (port == -1) "" else ":$port"
         return candidate.takeIf { it.origin.equals(origin, ignoreCase = true) }
+    }
+}
+
+/**
+ * Dispatcharr's Xtream endpoint uses the *numeric channel ID*, not its UUID.
+ * The username/password in the playback URL are never retained in this model.
+ */
+data class DispatcharrXtreamChannelRef(val origin: String, val channelId: Int)
+
+object DispatcharrXtreamChannelUrls {
+    private val PATH = Regex("^/live/[^/]+/[^/]+/([0-9]+)\\.(ts|m3u8)$", RegexOption.IGNORE_CASE)
+
+    fun parseForServer(rawUrl: String, configuredOrigin: String): DispatcharrXtreamChannelRef? {
+        val actual = runCatching { URI(rawUrl.trim()) }.getOrNull() ?: return null
+        val configured = runCatching { URI(configuredOrigin.trim().trimEnd('/')) }.getOrNull() ?: return null
+        val scheme = actual.scheme?.lowercase(Locale.ROOT) ?: return null
+        val host = actual.host ?: return null
+        if (scheme !in setOf("http", "https") || actual.userInfo != null ||
+            actual.fragment != null || actual.port !in -1..65535 || actual.port == 0
+        ) return null
+        if (!scheme.equals(configured.scheme, ignoreCase = true) ||
+            !host.equals(configured.host, ignoreCase = true) ||
+            actual.port != configured.port ||
+            configured.userInfo != null || configured.query != null || configured.fragment != null ||
+            configured.port !in -1..65535 || configured.port == 0 ||
+            (configured.path?.isNotBlank() == true && configured.path != "/")
+        ) return null
+        val match = PATH.matchEntire(actual.rawPath ?: return null) ?: return null
+        val channelId = match.groupValues[1].toIntOrNull()?.takeIf { it > 0 } ?: return null
+        val hostName = if (host.contains(':')) "[$host]" else host
+        val origin = "$scheme://$hostName" + if (actual.port == -1) "" else ":${actual.port}"
+        return DispatcharrXtreamChannelRef(origin, channelId)
     }
 }

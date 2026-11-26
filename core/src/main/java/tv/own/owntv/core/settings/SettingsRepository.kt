@@ -2980,6 +2980,14 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         context.dataStore.edit { phoneStageDefaults(it, alphaPct) }
     }
 
+    /**
+     * Phone-specific visual defaults. Only fill unset keys: a user's chosen value,
+     * including per-profile sizes and custom accents, always wins. TV defaults stay intact.
+     */
+    suspend fun applyPhoneVisualDefaults() {
+        context.dataStore.edit { phoneVisualDefaults(it) }
+    }
+
     /** v4.1.6 only: force live latency to Balanced exactly once, including existing custom choices. */
     suspend fun migrateLiveLatency416() {
         context.dataStore.edit { prefs ->
@@ -3500,6 +3508,17 @@ class SettingsRepository(private val context: Context, private val localeStore: 
             prefs[Keys.GLASS_SCOPE] = tv.own.owntv.core.theme.GlassConfig.ON_BITS
             prefs[Keys.GLASS_ALPHA] = alphaPct
             prefs[Keys.BG_STYLE] = tv.own.owntv.core.theme.BackgroundStyle.STAGE.name
+        }
+
+        /** Default look for the phone, never an overwrite of a saved choice. */
+        internal fun phoneVisualDefaults(prefs: MutablePreferences) {
+            if (prefs[Keys.UI_ZOOM_PCT] == null) prefs[Keys.UI_ZOOM_PCT] = 120
+            if (prefs[Keys.FONT_SIZE_PCT] == null) prefs[Keys.FONT_SIZE_PCT] = 120
+            if (prefs[Keys.POPUP_FONT_SIZE_PCT] == null) prefs[Keys.POPUP_FONT_SIZE_PCT] = 120
+            if (prefs[Keys.POPUP_SIZE_PCT] == null) prefs[Keys.POPUP_SIZE_PCT] = 120
+            if (prefs[Keys.ACCENT] == null && prefs[Keys.ACCENT_CUSTOM].isNullOrBlank()) {
+                prefs[Keys.ACCENT] = AccentColor.BLUE.name
+            }
         }
 
         /** Backup payload field name for the UI locale tag (read from / written to [LocaleStore]). */

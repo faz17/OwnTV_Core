@@ -68,4 +68,29 @@ class StageDefaultsTest {
         assertEquals(0, glassOff[Keys.GLASS_SCOPE])
         assertNull(glassOff[Keys.BG_STYLE])
     }
+    @Test
+    fun `phone visual defaults use 120 percent and blue without overwriting choices`() {
+        val fresh = mutablePreferencesOf()
+        SettingsRepository.phoneVisualDefaults(fresh)
+        assertEquals(120, fresh[Keys.UI_ZOOM_PCT])
+        assertEquals(120, fresh[Keys.FONT_SIZE_PCT])
+        assertEquals(120, fresh[Keys.POPUP_FONT_SIZE_PCT])
+        assertEquals(120, fresh[Keys.POPUP_SIZE_PCT])
+        assertEquals("BLUE", fresh[Keys.ACCENT])
+
+        val chosen = mutablePreferencesOf(
+            Keys.UI_ZOOM_PCT to 95,
+            Keys.FONT_SIZE_PCT to 105,
+            Keys.POPUP_FONT_SIZE_PCT to 110,
+            Keys.POPUP_SIZE_PCT to 100,
+            Keys.ACCENT to "VIOLET",
+        )
+        SettingsRepository.phoneVisualDefaults(chosen)
+        assertEquals(95, chosen[Keys.UI_ZOOM_PCT])
+        assertEquals(105, chosen[Keys.FONT_SIZE_PCT])
+        assertEquals(110, chosen[Keys.POPUP_FONT_SIZE_PCT])
+        assertEquals(100, chosen[Keys.POPUP_SIZE_PCT])
+        assertEquals("VIOLET", chosen[Keys.ACCENT])
+    }
+
 }

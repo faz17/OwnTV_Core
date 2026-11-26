@@ -22,7 +22,7 @@ class DispatcharrApi(
     private val configuredOrigin: String,
     private val apiKey: String,
 ) {
-    enum class ApiStage { CHANNEL, STREAMS, STATUS, SWITCH, AUTH }
+    enum class ApiStage { CHANNEL, STREAMS, STATUS, SWITCH, RECORDING, AUTH }
 
     /** Never put the response body or streaming credentials in diagnostics. */
     class ApiFailure(val stage: ApiStage, val statusCode: Int?, cause: Throwable? = null) : IOException(cause)
@@ -164,6 +164,68 @@ class DispatcharrApi(
         Unit
     }
 
+    /**
+     * Schedule a DVR job on the Dispatcharr host. The channel is resolved from the
+     * exact same-origin playing URL; local OwnTV recording is never involved.
+     */
+    suspend fun scheduleServerRecording(playingUrl: String, startMs: Long, endMs: Long): Int =
+        withContext(Dispatchers.IO) {
+            require(endMs > startMs && endMs > System.currentTimeMillis()) {
+                "Invalid recording window"
+            }
+            val channelId = sourcesFor(playingUrl).channelId
+            val body = JSONObject()
+                .put("channel", channelId)
+                .put("start_time", java.time.Instant.ofEpochMilli(startMs).toString())
+                .put("end_time", java.time.Instant.ofEpochMilli(endMs).toString())
+            val result = requestJson("/api/channels/recordings/", body, ApiStage.RECORDING) as? JSONObject
+                ?: throw ApiFailure(ApiStage.RECORDING, null)
+            result.optInt("id").takeIf { it > 0 }
+                ?: throw ApiFailure(ApiStage.RECORDING, null)
+        }
+
+    /**
+     * Find a current DVR job on this channel before offering a second recording.
+     * Dispatcharr stores its status in custom_properties rather than a top-level column.
+     */
+    suspend fun activeServerRecording(playingUrl: String): Int? = withContext(Dispatchers.IO) {
+        val channelId = sourcesFor(playingUrl).channelId
+        val response = requestJson("/api/channels/recordings/", stage = ApiStage.RECORDING)
+        val rows = when (response) {
+            is JSONArray -> response
+            is JSONObject -> response.optJSONArray("results")
+            else -> null
+        } ?: throw ApiFailure(ApiStage.RECORDING, null)
+        val now = System.currentTimeMillis()
+        (0 until rows.length()).asSequence()
+            .mapNotNull(rows::optJSONObject)
+            .filter { it.optInt("channel") == channelId }
+            .firstOrNull { row ->
+                val state = row.optJSONObject("custom_properties")?.optString("status").orEmpty()
+                val start = runCatching {
+                    java.time.OffsetDateTime.parse(row.optString("start_time"))
+                        .toInstant().toEpochMilli()
+                }.getOrNull()
+                val end = runCatching {
+                    java.time.OffsetDateTime.parse(row.optString("end_time"))
+                        .toInstant().toEpochMilli()
+                }.getOrNull()
+                start != null && end != null && start <= now && end > now &&
+                    state !in setOf("stopped", "completed", "interrupted", "failed", "cancelled")
+            }?.optInt("id")?.takeIf { it > 0 }
+    }
+
+    /** Stop a Dispatcharr DVR job while keeping the bytes already recorded on the server. */
+    suspend fun stopServerRecording(recordingId: Int): Unit = withContext(Dispatchers.IO) {
+        require(recordingId > 0)
+        requestJson(
+            "/api/channels/recordings/$recordingId/stop/",
+            JSONObject(),
+            stage = ApiStage.RECORDING,
+        )
+        Unit
+    }
+
     private fun requireConfiguredChannel(playingUrl: String) {
         check(apiKey.isNotBlank()) { "Dispatcharr API key not configured" }
         require(
@@ -185,7 +247,7 @@ class DispatcharrApi(
         // must never be forwarded to another host.
         try {
             http.newBuilder().followRedirects(false).followSslRedirects(false).build()
-            .newCall(request).execute().use { response ->
+                .newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 // Do not expose the raw body: it may contain upstream URLs/credentials.
                 throw ApiFailure(stage, response.code)

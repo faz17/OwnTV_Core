@@ -36,6 +36,24 @@ class DispatcharrApiTest {
                     """[{"id":31,"name":"Provider A HD","m3u_account":5},{"id":32,"name":"Provider B FHD","m3u_account":8}]"""
                 "/proxy/ts/status/$uuid" ->
                     if (active) """{"stream_id":31}""" else """{"state":"stopped"}"""
+                "/api/channels/recordings/" -> {
+                    if (req.method == "POST") {
+                        val buffer = okio.Buffer()
+                        req.body?.writeTo(buffer)
+                        val payload = org.json.JSONObject(buffer.readUtf8())
+                        assertEquals(7, payload.getInt("channel"))
+                        assertTrue(payload.has("start_time"))
+                        assertTrue(payload.has("end_time"))
+                        """{"id":77,"channel":7}"""
+                    } else {
+                        val now = System.currentTimeMillis()
+                        """[{"id":77,"channel":7,"start_time":"${java.time.Instant.ofEpochMilli(now - 10_000)}","end_time":"${java.time.Instant.ofEpochMilli(now + 60_000)}","custom_properties":{"status":"recording"}}]"""
+                    }
+                }
+                "/api/channels/recordings/77/stop/" -> {
+                    assertEquals("POST", req.method)
+                    """{"success":true}"""
+                }
                 "/proxy/ts/change_stream/$uuid" -> {
                     assertEquals("POST", req.method)
                     assertEquals("""{"stream_id":32}""", req.body?.let { body ->
@@ -117,4 +135,31 @@ class DispatcharrApiTest {
         }
         assertTrue(calls.isEmpty())
     }
+    @Test fun schedulesAndStopsServerRecordingWithoutLocalFiles() = runBlocking {
+        val calls = mutableListOf<Pair<String, String>>()
+        val api = client(calls)
+        val start = System.currentTimeMillis()
+        val recordingId = api.scheduleServerRecording(playingUrl, start, start + 60_000)
+        assertEquals(77, recordingId)
+        assertEquals(77, api.activeServerRecording(playingUrl))
+        api.stopServerRecording(recordingId)
+        assertTrue(calls.contains("POST" to "/api/channels/recordings/"))
+        assertTrue(calls.contains("GET" to "/api/channels/recordings/"))
+        assertTrue(calls.contains("POST" to "/api/channels/recordings/77/stop/"))
+    }
+
+    @Test fun refusesDvrOperationOnOtherHost() {
+        val calls = mutableListOf<Pair<String, String>>()
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                client(calls).scheduleServerRecording(
+                    "https://other.example/proxy/ts/stream/$uuid",
+                    System.currentTimeMillis(),
+                    System.currentTimeMillis() + 60_000,
+                )
+            }
+        }
+        assertTrue(calls.isEmpty())
+    }
+
 }

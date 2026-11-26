@@ -1890,7 +1890,7 @@
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Channel not found in Dispatcharr
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Dispatcharr API key not configured
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Dispatcharr channel ID did not match the playing channel
-6	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	id
+7	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	id
 2	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid channel lookup response
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid channel UUID in Dispatcharr response
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid Dispatcharr channel id
@@ -1899,14 +1899,14 @@
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid stream list response
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	m3u_account
 3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	name
-4	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	next
+6	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	next
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel on the configured server
-2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	results
+3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	results
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Selected stream is not assigned to this channel
 2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	stream_id
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	stream_stats
-2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	uuid
+3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	uuid
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	uuids
 1	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	X-API-Key
 3	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/recordings/
@@ -7385,3 +7385,5 @@
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	file_path
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	program
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	title
+1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/
+1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/?page=$page

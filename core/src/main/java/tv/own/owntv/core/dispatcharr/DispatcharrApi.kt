@@ -268,6 +268,31 @@ class DispatcharrApi(
         all.sortedWith(compareByDescending<ServerRecording> { it.startMs }.thenByDescending { it.id })
     }
 
+    /** Server UUID-to-ID lookup for guide marks on proxied channels. */
+    suspend fun serverChannelIdsByUuid(): Map<String, Int> = withContext(Dispatchers.IO) {
+        val found = mutableMapOf<String, Int>()
+        for (page in 1..30) {
+            val response = requestJson(
+                if (page == 1) "/api/channels/channels/" else "/api/channels/channels/?page=$page",
+                stage = ApiStage.CHANNEL,
+            )
+            val rows = when (response) {
+                is JSONArray -> response
+                is JSONObject -> response.optJSONArray("results")
+                else -> null
+            } ?: throw ApiFailure(ApiStage.CHANNEL, null)
+            for (i in 0 until rows.length()) {
+                val row = rows.optJSONObject(i) ?: continue
+                val id = row.optInt("id")
+                val uuid = row.optString("uuid").lowercase(java.util.Locale.ROOT)
+                if (id > 0 && DispatcharrChannelUrls.isValidUuid(uuid)) found[uuid] = id
+            }
+            if (response !is JSONObject || response.isNull("next") ||
+                response.optString("next").isBlank()) break
+        }
+        found
+    }
+
     /** Use the same host as the configured API, never a third-party URL from JSON. */
     fun serverRecordingPlaybackUrl(recordingId: Int): String {
         require(recordingId > 0)

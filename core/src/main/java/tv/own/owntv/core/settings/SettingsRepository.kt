@@ -3266,7 +3266,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
             // storage, so a stale restore never breaks downloads.
             Keys.DOWNLOAD_ROOT,
             // Nav menu mode rides with settings backup so a reinstall keeps the user's DYNAMIC/STATIC choice.
-            Keys.NAV_MENU_MODE, Keys.NAV_MENU_ORDER,
+            Keys.NAV_MENU_MODE, Keys.NAV_MENU_ORDER, Keys.RECORDING_BACKEND,
             // Stage navigation style, size and length (the hide delay is an int key).
             Keys.NAV_STYLE, Keys.NAV_SIZE, Keys.NAV_LENGTH, Keys.NAV_WIDEN,
             // The chosen icon colour. After a restore the app compares it with the applied icon and offers a restart.
@@ -3315,7 +3315,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
             Keys.GESTURE_SENSITIVITY_PCT,
             Keys.NAV_HIDE_AFTER_MS, Keys.REMINDER_LEAD_MIN,
             // Multiview's tile count and recording's start-early / finish-late minutes (readers clamp them).
-            Keys.MULTIVIEW_TILES, Keys.RECORDING_BACKEND, Keys.RECORDING_PRE_ROLL_MINUTES, Keys.RECORDING_POST_ROLL_MINUTES,
+            Keys.MULTIVIEW_TILES, Keys.RECORDING_PRE_ROLL_MINUTES, Keys.RECORDING_POST_ROLL_MINUTES,
             // Auto frame rate's pause and films' buffer / timeout / reconnects; the readers
             // accept only their own choices.
             Keys.AFR_PAUSE_SECS, Keys.VOD_BUFFER_SECS, Keys.VOD_NETWORK_TIMEOUT_SECS, Keys.VOD_RECONNECTS,

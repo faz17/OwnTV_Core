@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import tv.own.owntv.core.nav.MainSection
 import tv.own.owntv.core.brand.AppIcon
 import tv.own.owntv.core.CoreBuildInfo
 import tv.own.owntv.core.i18n.LocaleStore
@@ -589,6 +590,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         // Chosen flip-card icon colour (AppIcon.name). What the launcher shows is AppIconSwitcher.applied.
         val APP_ICON = stringPreferencesKey("app_icon")
         val NAV_MENU_HIDDEN = stringSetPreferencesKey("nav_menu_hidden")
+        val NAV_MENU_ORDER = stringPreferencesKey("nav_menu_order")
         // Stage navigation (TV): where the rail sits (NavStyle.name), what it shows (NavSize.name), its
         // length (NavLength.name), and how long the floating rail waits before hiding.
         val NAV_STYLE = stringPreferencesKey("nav_style")
@@ -1262,6 +1264,18 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         context.dataStore.edit { prefs ->
             if (hidden.isEmpty()) prefs.remove(Keys.NAV_MENU_HIDDEN) else prefs[Keys.NAV_MENU_HIDDEN] = hidden
         }
+    }
+
+    /** Persistent order of browse items on both TV and Mobile, even in Dynamic mode. */
+    val navMenuOrder: Flow<List<MainSection>> = prefsFlow { prefs ->
+        MainSection.orderedBrowse(
+            prefs[Keys.NAV_MENU_ORDER]?.split(',')?.filter { it.isNotBlank() }.orEmpty(),
+        )
+    }
+
+    suspend fun setNavMenuOrder(order: List<MainSection>) {
+        val names = MainSection.orderedBrowse(order.map { it.name }).joinToString(",") { it.name }
+        context.dataStore.edit { it[Keys.NAV_MENU_ORDER] = names }
     }
 
     /**
@@ -3238,7 +3252,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
             // storage, so a stale restore never breaks downloads.
             Keys.DOWNLOAD_ROOT,
             // Nav menu mode rides with settings backup so a reinstall keeps the user's DYNAMIC/STATIC choice.
-            Keys.NAV_MENU_MODE,
+            Keys.NAV_MENU_MODE, Keys.NAV_MENU_ORDER,
             // Stage navigation style, size and length (the hide delay is an int key).
             Keys.NAV_STYLE, Keys.NAV_SIZE, Keys.NAV_LENGTH, Keys.NAV_WIDEN,
             // The chosen icon colour. After a restore the app compares it with the applied icon and offers a restart.

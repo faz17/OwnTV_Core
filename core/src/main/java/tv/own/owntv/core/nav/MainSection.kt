@@ -21,6 +21,7 @@ enum class MainSection(@param:StringRes val labelRes: Int) {
     MOVIES(R.string.common_nav_movies),
     SERIES(R.string.common_nav_series),
     DOWNLOADS(R.string.common_nav_downloads),
+    RECORDINGS(R.string.recording_title),
     EPG(R.string.common_nav_guide),
     SETTINGS(R.string.common_nav_settings), // pinned, not part of the browse set
 
@@ -39,11 +40,21 @@ enum class MainSection(@param:StringRes val labelRes: Int) {
 
     companion object {
         /** Fixed order of the browse items (Settings is pinned separately). */
-        val browseOrder: List<MainSection> = listOf(HOME, LIVE_TV, SPORTS, MOVIES, SERIES, DOWNLOADS, EPG)
+        val browseOrder: List<MainSection> = listOf(HOME, LIVE_TV, SPORTS, EPG, MOVIES, SERIES, DOWNLOADS, RECORDINGS)
 
         /** All seven browse items — the default value, so a cold start shows a full nav rather than
          *  flickering through an empty one before the first real emission lands. */
         val allBrowse: Set<MainSection> = browseOrder.toSet()
+
+        /**
+         * Sanitize a saved rail order. Existing settings from older versions are accepted;
+         * new sections are appended and removed/unknown names are discarded.
+         * Search/More remain pinned outside the reorderable browse area.
+         */
+        fun orderedBrowse(names: List<String>): List<MainSection> =
+            names.mapNotNull { name -> runCatching { valueOf(name) }.getOrNull() }
+                .filter { it.isBrowse }.distinct() +
+                browseOrder.filter { candidate -> names.none { it == candidate.name } }
 
         /** STATIC-mode rule: every browse item minus the names the user hid. An unknown name is ignored,
          *  and a section added later (Sports) shows, because no older hidden set names it. */
@@ -58,7 +69,7 @@ enum class MainSection(@param:StringRes val labelRes: Int) {
         fun dynamicVisible(hasLive: Boolean, hasMovies: Boolean, hasSeries: Boolean): Set<MainSection> = buildSet {
             add(HOME)
             add(SPORTS)
-            if (hasLive) { add(LIVE_TV); add(EPG) }
+            if (hasLive) { add(LIVE_TV); add(EPG); add(RECORDINGS) }
             if (hasMovies) add(MOVIES)
             if (hasSeries) add(SERIES)
             if (hasMovies || hasSeries) add(DOWNLOADS)

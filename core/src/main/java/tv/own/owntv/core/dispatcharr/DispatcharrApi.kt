@@ -215,6 +215,81 @@ class DispatcharrApi(
             }?.optInt("id")?.takeIf { it > 0 }
     }
 
+
+    /** Remote DVR catalogue entry (no local recording files are created). */
+    data class ServerRecording(
+        val id: Int, val channelId: Int, val startMs: Long, val endMs: Long,
+        val title: String, val status: String, val hasFile: Boolean,
+    ) {
+        fun isScheduled(now: Long): Boolean =
+            startMs > now && status !in setOf("cancelled", "failed", "completed")
+        fun isActive(now: Long): Boolean = startMs <= now && endMs > now &&
+            status !in setOf("cancelled", "failed", "completed", "stopped", "interrupted")
+        fun isCompleted(): Boolean = hasFile &&
+            status in setOf("completed", "stopped", "interrupted")
+    }
+
+    suspend fun serverRecordings(): List<ServerRecording> = withContext(Dispatchers.IO) {
+        val all = mutableListOf<ServerRecording>()
+        for (page in 1..30) {
+            val route = if (page == 1) "/api/channels/recordings/"
+                else "/api/channels/recordings/?page=$page"
+            val response = requestJson(route, stage = ApiStage.RECORDING)
+            val rows = when (response) {
+                is JSONArray -> response
+                is JSONObject -> response.optJSONArray("results")
+                else -> null
+            } ?: throw ApiFailure(ApiStage.RECORDING, null)
+            for (i in 0 until rows.length()) {
+                val row = rows.optJSONObject(i) ?: continue
+                val id = row.optInt("id")
+                val channelId = row.optInt("channel")
+                if (id <= 0 || channelId <= 0) continue
+                val start = runCatching {
+                    java.time.OffsetDateTime.parse(row.getString("start_time")).toInstant().toEpochMilli()
+                }.getOrNull() ?: continue
+                val end = runCatching {
+                    java.time.OffsetDateTime.parse(row.getString("end_time")).toInstant().toEpochMilli()
+                }.getOrNull() ?: continue
+                val cp = row.optJSONObject("custom_properties")
+                val title = cp?.optJSONObject("program")?.optString("title").orEmpty()
+                    .ifBlank { row.optString("name") }
+                    .ifBlank { row.optString("file_name") }
+                    .ifBlank { channelId.toString() }
+                val status = cp?.optString("status").orEmpty()
+                    .ifBlank { row.optString("status") }.lowercase(java.util.Locale.ROOT)
+                val hasFile = listOf("file_url", "output_file_url", "file_path")
+                    .any { !cp?.optString(it).isNullOrBlank() }
+                all += ServerRecording(id, channelId, start, end, title, status, hasFile)
+            }
+            if (response !is JSONObject || response.isNull("next") ||
+                response.optString("next").isBlank()) break
+        }
+        all.sortedWith(compareByDescending<ServerRecording> { it.startMs }.thenByDescending { it.id })
+    }
+
+    /** Use the same host as the configured API, never a third-party URL from JSON. */
+    fun serverRecordingPlaybackUrl(recordingId: Int): String {
+        require(recordingId > 0)
+        val origin = DispatcharrChannelUrls.parseForServer(
+            "$configuredOrigin/proxy/ts/stream/123e4567-e89b-42d3-a456-426614174000",
+            configuredOrigin,
+        )?.origin ?: throw IllegalArgumentException("Invalid Dispatcharr server origin")
+        return "$origin/api/channels/recordings/$recordingId/file/"
+    }
+
+    fun serverRecordingHeaders(): String {
+        check(apiKey.isNotBlank())
+        return "X-API-Key: $apiKey"
+    }
+
+    /** Cancel only a pending server DVR job. */
+    suspend fun cancelServerRecording(recordingId: Int): Unit = withContext(Dispatchers.IO) {
+        require(recordingId > 0)
+        requestJson("/api/channels/recordings/$recordingId/", stage = ApiStage.RECORDING, method = "DELETE")
+        Unit
+    }
+
     /** Stop a Dispatcharr DVR job while keeping the bytes already recorded on the server. */
     suspend fun stopServerRecording(recordingId: Int): Unit = withContext(Dispatchers.IO) {
         require(recordingId > 0)
@@ -234,15 +309,18 @@ class DispatcharrApi(
         ) { "Not a Dispatcharr channel on the configured server" }
     }
 
-    private fun requestJson(path: String, payload: JSONObject? = null, stage: ApiStage): Any {
+    private fun requestJson(path: String, payload: JSONObject? = null, stage: ApiStage, method: String? = null): Any {
         // Only use the normalized origin that the strict URL matcher approved.
         val origin = DispatcharrChannelUrls.parseForServer(
             "$configuredOrigin/proxy/ts/stream/123e4567-e89b-42d3-a456-426614174000",
             configuredOrigin,
         )?.origin ?: throw IllegalArgumentException("Invalid Dispatcharr server origin")
         val builder = Request.Builder().url(origin + path).header("X-API-Key", apiKey)
-        val request = if (payload == null) builder.get().build() else builder
-            .post(payload.toString().toRequestBody("application/json".toMediaType())).build()
+        val request = when {
+            method == "DELETE" -> builder.delete().build()
+            payload == null -> builder.get().build()
+            else -> builder.post(payload.toString().toRequestBody("application/json".toMediaType())).build()
+        }
         // OkHttp ordinarily follows cross-origin redirects. A privileged X-API-Key
         // must never be forwarded to another host.
         try {
@@ -253,6 +331,7 @@ class DispatcharrApi(
                 throw ApiFailure(stage, response.code)
             }
             val body = response.body?.string().orEmpty()
+            if (method == "DELETE" && body.isBlank()) return JSONObject()
             return when (body.trimStart().firstOrNull()) {
                 '{' -> JSONObject(body)
                 '[' -> JSONArray(body)

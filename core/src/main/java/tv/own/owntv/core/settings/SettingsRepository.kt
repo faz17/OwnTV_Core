@@ -446,6 +446,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         // Recording. Recordings and multiview spend the same connections.
         val RECORDING_RESERVE_CONNECTION = booleanPreferencesKey("recording_reserve_connection")
         val RECORDING_PRE_ROLL_MINUTES = intPreferencesKey("recording_pre_roll_minutes")
+        val RECORDING_BACKEND = stringPreferencesKey("recording_backend")
         val RECORDING_POST_ROLL_MINUTES = intPreferencesKey("recording_post_roll_minutes")
         val RECORDING_OVER_MOBILE_DATA = booleanPreferencesKey("recording_over_mobile_data")
         val RECORD_WHAT_IM_WATCHING = booleanPreferencesKey("record_what_im_watching")
@@ -2606,6 +2607,19 @@ class SettingsRepository(private val context: Context, private val localeStore: 
      * guide that is ninety seconds out is entirely ordinary. The padding is what turns "the guide
      * said 21:00" into "the programme is actually on the recording".
      */
+    /**
+     * AUTO retains the previous behaviour; explicit LOCAL or DISPATCHARR never
+     * silently switch recording destination if the chosen backend fails.
+     */
+    enum class RecordingBackend { AUTO, LOCAL, DISPATCHARR }
+    val recordingBackend: Flow<RecordingBackend> = prefsFlow { prefs ->
+        prefs[Keys.RECORDING_BACKEND]?.let { runCatching { RecordingBackend.valueOf(it) }.getOrNull() }
+            ?: RecordingBackend.AUTO
+    }
+    suspend fun setRecordingBackend(backend: RecordingBackend) {
+        context.dataStore.edit { it[Keys.RECORDING_BACKEND] = backend.name }
+    }
+
     val recordingPreRollMinutes: Flow<Int> = prefsFlow {
         (it[Keys.RECORDING_PRE_ROLL_MINUTES] ?: RecordingSchedule.DEFAULT_PRE_ROLL_MINUTES)
             .coerceIn(0, RecordingSchedule.MAX_ROLL_MINUTES)
@@ -3301,7 +3315,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
             Keys.GESTURE_SENSITIVITY_PCT,
             Keys.NAV_HIDE_AFTER_MS, Keys.REMINDER_LEAD_MIN,
             // Multiview's tile count and recording's start-early / finish-late minutes (readers clamp them).
-            Keys.MULTIVIEW_TILES, Keys.RECORDING_PRE_ROLL_MINUTES, Keys.RECORDING_POST_ROLL_MINUTES,
+            Keys.MULTIVIEW_TILES, Keys.RECORDING_BACKEND, Keys.RECORDING_PRE_ROLL_MINUTES, Keys.RECORDING_POST_ROLL_MINUTES,
             // Auto frame rate's pause and films' buffer / timeout / reconnects; the readers
             // accept only their own choices.
             Keys.AFR_PAUSE_SECS, Keys.VOD_BUFFER_SECS, Keys.VOD_NETWORK_TIMEOUT_SECS, Keys.VOD_RECONNECTS,

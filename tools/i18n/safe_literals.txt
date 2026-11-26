@@ -1898,8 +1898,8 @@
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid stream id
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid stream list response
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	m3u_account
-2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	name
-2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	next
+3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	name
+4	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	next
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel on the configured server
 2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	results
@@ -1909,19 +1909,19 @@
 2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	uuid
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	uuids
 1	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	X-API-Key
-2	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/recordings/
+3	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/recordings/
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/recordings/$recordingId/stop/
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid recording window
-1	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	cancelled
+3	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	cancelled
 2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	channel
-1	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	completed
+4	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	completed
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	custom_properties
 2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	end_time
-1	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	failed
-1	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	interrupted
+3	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	failed
+3	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	interrupted
 2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	start_time
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	status
-1	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	stopped
+3	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	stopped
 1	uri	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrChannelRef.kt	:${actual.port}
 2	uri	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrChannelRef.kt	:$port
 3	uri	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrChannelRef.kt	[$host]
@@ -7372,3 +7372,16 @@
 1	log	player-core/src/main/java/tv/own/owntv/player/VolumeBoost.kt	volume boost failed: ${it.javaClass.simpleName}
 1	log	player-core/src/main/java/tv/own/owntv/player/VolumeBoost.kt	volume boost unavailable: ${it.javaClass.simpleName}
 1	log	player-core/src/main/java/tv/own/owntv/player/ZapTiming.kt	(zap key press to first frame ${it}ms)
+
+1	preference-key	core/src/main/java/tv/own/owntv/core/settings/SettingsRepository.kt	recording_backend
+1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/recordings/?page=$page
+1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/recordings/$recordingId/
+1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	$origin/api/channels/recordings/$recordingId/file/
+1	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	X-API-Key: $apiKey
+3	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	DELETE
+1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	file_name
+1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	file_url
+1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	output_file_url
+1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	file_path
+1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	program
+1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	title

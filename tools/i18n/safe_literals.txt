@@ -1884,17 +1884,17 @@
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/m3u/accounts/?page=$page
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/proxy/ts/change_stream/${sources.channelUuid}
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/proxy/ts/status/${channelUuid}
-1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	$configuredOrigin/proxy/ts/stream/123e4567-e89b-42d3-a456-426614174000
+2	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	$configuredOrigin/proxy/ts/stream/123e4567-e89b-42d3-a456-426614174000
 1	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	application/json
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Channel is not running in Dispatcharr
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Channel not found in Dispatcharr
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Dispatcharr API key not configured
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Dispatcharr channel ID did not match the playing channel
-7	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	id
+8	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	id
 2	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid channel lookup response
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid channel UUID in Dispatcharr response
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid Dispatcharr channel id
-1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid Dispatcharr server origin
+2	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid Dispatcharr server origin
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid stream id
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid stream list response
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	m3u_account
@@ -1902,7 +1902,7 @@
 6	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	next
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Not a Dispatcharr channel on the configured server
-3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	results
+4	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	results
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Selected stream is not assigned to this channel
 2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	stream_id
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	stream_stats
@@ -1913,14 +1913,14 @@
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/recordings/$recordingId/stop/
 1	technical	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	Invalid recording window
 3	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	cancelled
-2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	channel
+3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	channel
 4	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	completed
-1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	custom_properties
-2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	end_time
+2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	custom_properties
+3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	end_time
 3	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	failed
 3	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	interrupted
-2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	start_time
-1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	status
+3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	start_time
+3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	status
 3	protocol	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	stopped
 1	uri	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrChannelRef.kt	:${actual.port}
 2	uri	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrChannelRef.kt	:$port

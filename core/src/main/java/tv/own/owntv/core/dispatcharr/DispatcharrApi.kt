@@ -220,6 +220,7 @@ class DispatcharrApi(
     data class ServerRecording(
         val id: Int, val channelId: Int, val startMs: Long, val endMs: Long,
         val title: String, val status: String, val hasFile: Boolean,
+        val posterUrl: String? = null,
     ) {
         fun isScheduled(now: Long): Boolean =
             startMs > now && status !in setOf("cancelled", "failed", "completed")
@@ -260,7 +261,28 @@ class DispatcharrApi(
                     .ifBlank { row.optString("status") }.lowercase(java.util.Locale.ROOT)
                 val hasFile = listOf("file_url", "output_file_url", "file_path")
                     .any { !cp?.optString(it).isNullOrBlank() }
-                all += ServerRecording(id, channelId, start, end, title, status, hasFile)
+                // Use artwork already attached to the Dispatcharr DVR/EPG metadata.
+                // Never append API keys or playback credentials to image URLs.
+                val program = cp?.optJSONObject("program")
+                val posterCandidate = sequenceOf(
+                    program?.optString("poster_url"), program?.optString("poster"),
+                    program?.optString("icon"), program?.optString("image"),
+                    row.optString("poster_url"), row.optString("poster"),
+                    cp?.optString("poster_url"), cp?.optString("thumbnail"),
+                    cp?.optString("logo_url"),
+                ).filterNotNull().firstOrNull { it.isNotBlank() }
+                val posterUrl = posterCandidate?.let { raw ->
+                    runCatching {
+                        val candidate = java.net.URI(raw)
+                        val resolved = if (candidate.isAbsolute) candidate
+                            else java.net.URI(configuredOrigin.trimEnd('/') + "/").resolve(candidate)
+                        resolved.toString().takeIf {
+                            resolved.scheme.equals("https", true) &&
+                                resolved.userInfo == null
+                        }
+                    }.getOrNull()
+                }
+                all += ServerRecording(id, channelId, start, end, title, status, hasFile, posterUrl)
             }
             if (response !is JSONObject || response.isNull("next") ||
                 response.optString("next").isBlank()) break

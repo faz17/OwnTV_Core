@@ -29,4 +29,25 @@ class MainSectionTest {
         assertTrue(MainSection.SPORTS in MainSection.staticVisible(setOf("MOVIES", "DOWNLOADS", "GONE")))
         assertFalse(MainSection.SPORTS in MainSection.staticVisible(setOf("SPORTS")))
     }
+    @Test
+    fun `recordings is available in static mode and follows live channels in dynamic mode`() {
+        assertTrue(MainSection.RECORDINGS in MainSection.staticVisible(emptySet()))
+        assertFalse(MainSection.RECORDINGS in MainSection.staticVisible(setOf("RECORDINGS")))
+        assertTrue(MainSection.RECORDINGS in MainSection.dynamicVisible(true, false, false))
+        assertFalse(MainSection.RECORDINGS in MainSection.dynamicVisible(false, false, false))
+    }
+
+    @Test
+    fun `saved navigation order is stable and ignores obsolete or duplicate names`() {
+        val result = MainSection.orderedBrowse(
+            listOf("RECORDINGS", "LIVE_TV", "RECORDINGS", "INVALID", "MORE", "HOME")
+        )
+        assertEquals(listOf(MainSection.RECORDINGS, MainSection.LIVE_TV, MainSection.HOME),
+            result.take(3))
+        assertEquals(MainSection.allBrowse, result.toSet())
+        assertEquals(result.size, result.distinct().size)
+        assertEquals(MainSection.browseOrder, MainSection.orderedBrowse(emptyList()))
+    }
+
+
 }

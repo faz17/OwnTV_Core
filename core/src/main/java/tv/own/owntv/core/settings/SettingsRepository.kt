@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import tv.own.owntv.core.nav.MainSection
 import tv.own.owntv.core.brand.AppIcon
 import tv.own.owntv.core.CoreBuildInfo
 import tv.own.owntv.core.i18n.LocaleStore
@@ -445,6 +446,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         // Recording. Recordings and multiview spend the same connections.
         val RECORDING_RESERVE_CONNECTION = booleanPreferencesKey("recording_reserve_connection")
         val RECORDING_PRE_ROLL_MINUTES = intPreferencesKey("recording_pre_roll_minutes")
+        val RECORDING_BACKEND = stringPreferencesKey("recording_backend")
         val RECORDING_POST_ROLL_MINUTES = intPreferencesKey("recording_post_roll_minutes")
         val RECORDING_OVER_MOBILE_DATA = booleanPreferencesKey("recording_over_mobile_data")
         val RECORD_WHAT_IM_WATCHING = booleanPreferencesKey("record_what_im_watching")
@@ -589,6 +591,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         // Chosen flip-card icon colour (AppIcon.name). What the launcher shows is AppIconSwitcher.applied.
         val APP_ICON = stringPreferencesKey("app_icon")
         val NAV_MENU_HIDDEN = stringSetPreferencesKey("nav_menu_hidden")
+        val NAV_MENU_ORDER = stringPreferencesKey("nav_menu_order")
         // Stage navigation (TV): where the rail sits (NavStyle.name), what it shows (NavSize.name), its
         // length (NavLength.name), and how long the floating rail waits before hiding.
         val NAV_STYLE = stringPreferencesKey("nav_style")
@@ -1262,6 +1265,18 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         context.dataStore.edit { prefs ->
             if (hidden.isEmpty()) prefs.remove(Keys.NAV_MENU_HIDDEN) else prefs[Keys.NAV_MENU_HIDDEN] = hidden
         }
+    }
+
+    /** Persistent order of browse items on both TV and Mobile, even in Dynamic mode. */
+    val navMenuOrder: Flow<List<MainSection>> = prefsFlow { prefs ->
+        MainSection.orderedBrowse(
+            prefs[Keys.NAV_MENU_ORDER]?.split(',')?.filter { it.isNotBlank() }.orEmpty(),
+        )
+    }
+
+    suspend fun setNavMenuOrder(order: List<MainSection>) {
+        val names = MainSection.orderedBrowse(order.map { it.name }).joinToString(",") { it.name }
+        context.dataStore.edit { it[Keys.NAV_MENU_ORDER] = names }
     }
 
     /**
@@ -2592,6 +2607,19 @@ class SettingsRepository(private val context: Context, private val localeStore: 
      * guide that is ninety seconds out is entirely ordinary. The padding is what turns "the guide
      * said 21:00" into "the programme is actually on the recording".
      */
+    /**
+     * AUTO retains the previous behaviour; explicit LOCAL or DISPATCHARR never
+     * silently switch recording destination if the chosen backend fails.
+     */
+    enum class RecordingBackend { AUTO, LOCAL, DISPATCHARR }
+    val recordingBackend: Flow<RecordingBackend> = prefsFlow { prefs ->
+        prefs[Keys.RECORDING_BACKEND]?.let { runCatching { RecordingBackend.valueOf(it) }.getOrNull() }
+            ?: RecordingBackend.AUTO
+    }
+    suspend fun setRecordingBackend(backend: RecordingBackend) {
+        context.dataStore.edit { it[Keys.RECORDING_BACKEND] = backend.name }
+    }
+
     val recordingPreRollMinutes: Flow<Int> = prefsFlow {
         (it[Keys.RECORDING_PRE_ROLL_MINUTES] ?: RecordingSchedule.DEFAULT_PRE_ROLL_MINUTES)
             .coerceIn(0, RecordingSchedule.MAX_ROLL_MINUTES)
@@ -2980,6 +3008,14 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         context.dataStore.edit { phoneStageDefaults(it, alphaPct) }
     }
 
+    /**
+     * Phone-specific visual defaults. Only fill unset keys: a user's chosen value,
+     * including per-profile sizes and custom accents, always wins. TV defaults stay intact.
+     */
+    suspend fun applyPhoneVisualDefaults() {
+        context.dataStore.edit { phoneVisualDefaults(it) }
+    }
+
     /** v4.1.6 only: force live latency to Balanced exactly once, including existing custom choices. */
     suspend fun migrateLiveLatency416() {
         context.dataStore.edit { prefs ->
@@ -3230,7 +3266,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
             // storage, so a stale restore never breaks downloads.
             Keys.DOWNLOAD_ROOT,
             // Nav menu mode rides with settings backup so a reinstall keeps the user's DYNAMIC/STATIC choice.
-            Keys.NAV_MENU_MODE,
+            Keys.NAV_MENU_MODE, Keys.NAV_MENU_ORDER, Keys.RECORDING_BACKEND,
             // Stage navigation style, size and length (the hide delay is an int key).
             Keys.NAV_STYLE, Keys.NAV_SIZE, Keys.NAV_LENGTH, Keys.NAV_WIDEN,
             // The chosen icon colour. After a restore the app compares it with the applied icon and offers a restart.
@@ -3500,6 +3536,17 @@ class SettingsRepository(private val context: Context, private val localeStore: 
             prefs[Keys.GLASS_SCOPE] = tv.own.owntv.core.theme.GlassConfig.ON_BITS
             prefs[Keys.GLASS_ALPHA] = alphaPct
             prefs[Keys.BG_STYLE] = tv.own.owntv.core.theme.BackgroundStyle.STAGE.name
+        }
+
+        /** Default look for the phone, never an overwrite of a saved choice. */
+        internal fun phoneVisualDefaults(prefs: MutablePreferences) {
+            if (prefs[Keys.UI_ZOOM_PCT] == null) prefs[Keys.UI_ZOOM_PCT] = 120
+            if (prefs[Keys.FONT_SIZE_PCT] == null) prefs[Keys.FONT_SIZE_PCT] = 120
+            if (prefs[Keys.POPUP_FONT_SIZE_PCT] == null) prefs[Keys.POPUP_FONT_SIZE_PCT] = 120
+            if (prefs[Keys.POPUP_SIZE_PCT] == null) prefs[Keys.POPUP_SIZE_PCT] = 120
+            if (prefs[Keys.ACCENT] == null && prefs[Keys.ACCENT_CUSTOM].isNullOrBlank()) {
+                prefs[Keys.ACCENT] = AccentColor.BLUE.name
+            }
         }
 
         /** Backup payload field name for the UI locale tag (read from / written to [LocaleStore]). */

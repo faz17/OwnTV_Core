@@ -7383,10 +7383,11 @@
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	file_url
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	output_file_url
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	file_path
-1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	program
+2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	program
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	title
 1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/
-1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/?page=$page3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	poster_url
+1	url	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	/api/channels/channels/?page=$page
+3	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	poster_url
 2	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	poster
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	icon
 1	json	core/src/main/java/tv/own/owntv/core/dispatcharr/DispatcharrApi.kt	image
